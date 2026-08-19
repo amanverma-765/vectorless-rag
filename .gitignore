@@ -27,6 +27,7 @@ htmlcov/
 # RAG artifacts — indexes and source corpora are rebuilt, not versioned
 chroma/
 .chroma/
+chroma_db/
 *.faiss
 *.sqlite3
 data/*
