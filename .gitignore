@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Notebooks
+.ipynb_checkpoints/
+
+# RAG artifacts — indexes and source corpora are rebuilt, not versioned
+chroma/
+.chroma/
+*.faiss
+*.sqlite3
+data/*
+!data/.gitkeep
+
+# Model / HF caches
+.cache/
+models/
+
+# IDE
+.idea/*
+!.idea/runConfigurations/
+.vscode/
+
+# OS
+.DS_Store
+
+# OMC state
+/.omc/
