@@ -28,6 +28,7 @@ htmlcov/
 chroma/
 .chroma/
 chroma_db/
+page_index/
 *.faiss
 *.sqlite3
 data/*
