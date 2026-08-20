@@ -6,7 +6,9 @@ from pydantic_ai import Embedder, EmbeddingSettings
 from pydantic_ai.embeddings.openai import OpenAIEmbeddingModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
-from vectorless_rag.loader import load_pdf
+from vectorless_rag.loader import hash_pdf, load_hashes, load_pdf, save_hashes
+
+HASHES_PATH = Path("chroma_db") / "hashes.json"
 
 # 3072 dims, delete chroma_db/ and re-ingest if this changes
 MODEL = "gemini-embedding-001"
@@ -123,6 +125,14 @@ def store_embeddings(chunks: list[dict], doc_id: str) -> None:
 
 
 async def ingest(pdf_path: str) -> None:
+    doc_id = Path(pdf_path).stem
+    digest = hash_pdf(pdf_path)
+    hashes = load_hashes(HASHES_PATH)
+
+    if hashes.get(doc_id) == digest:
+        print("Already ingested, unchanged. Skipping.")
+        return
+
     print("Loading PDF...")
     pages = load_pdf(pdf_path)
 
@@ -136,7 +146,10 @@ async def ingest(pdf_path: str) -> None:
 
     print("Storing in Chroma...")
     # same-named pdfs in different dirs collide
-    store_embeddings(chunks, Path(pdf_path).stem)
+    store_embeddings(chunks, doc_id)
+
+    hashes[doc_id] = digest
+    save_hashes(HASHES_PATH, hashes)
 
     print("Done!")
 
