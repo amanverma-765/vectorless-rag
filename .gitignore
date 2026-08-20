@@ -14,6 +14,11 @@ chroma_db/
 page_index/
 data/*
 !data/.gitkeep
+!data/doc/
+!data/doc/jesc101.pdf
+
+# eval run output
+eval/results_*.json
 
 # IDE
 .idea/*
@@ -22,5 +27,6 @@ data/*
 # OS
 .DS_Store
 
-# OMC state
+# local tooling state
 .omc/
+.claude/
