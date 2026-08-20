@@ -16,13 +16,13 @@ provider = OpenAIProvider(
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
     api_key=os.environ["GEMINI_API_KEY"],
 )
-model = OpenAIEmbeddingModel(
+embedding_model = OpenAIEmbeddingModel(
     MODEL,
     provider=provider,
     # ponytail: openai-sdk defaults encoding_format=base64; ask for floats
     settings=EmbeddingSettings(extra_body={"encoding_format": "float"}),
 )
-embedder = Embedder(model)
+embedder = Embedder(embedding_model)
 
 # Chroma setup
 client = chromadb.PersistentClient(path="./chroma_db")

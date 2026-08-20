@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="vectorless-rag" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="false">
+  <configuration default="false" name="vector-rag" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="false">
     <module name="vectorless-rag" />
     <option name="ENV_FILES" value="" />
     <option name="INTERPRETER_OPTIONS" value="" />
