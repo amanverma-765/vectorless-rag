@@ -4,10 +4,12 @@ from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
-MODEL = "nvidia/nemotron-3-nano-30b-a3b:free"
+# ponytail: 9router is a local OpenAI-compatible proxy -- it fans out to whatever
+# providers you've configured and falls back when one runs out of free quota
+MODEL = "ag/gemini-3.7-flash-medium"
 provider = OpenAIProvider(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.environ["OPENROUTER_API_KEY"],
+    base_url="http://localhost:20128/v1",
+    api_key=os.environ["NINEROUTER_API_KEY"],
 )
 model = OpenAIChatModel(
     MODEL,
@@ -17,10 +19,15 @@ agent = Agent(
     model,
     instructions=(
         "Answer questions about the indexed document. "
-        "Always call the retrieve tool first -- never answer from memory. "
         "Search again with reworded queries if the passages look insufficient. "
         "Answer concisely, grounded only in retrieved passages, and cite the "
         "page number for each claim. Cite only pages the tool actually "
         "returned. If the passages do not contain the answer, say so."
     ),
 )
+
+
+async def answer(question: str) -> str:
+    result = await agent.run(question)
+
+    return result.output
