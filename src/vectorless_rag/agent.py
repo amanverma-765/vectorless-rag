@@ -4,8 +4,7 @@ from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
-# ponytail: 9router is a local OpenAI-compatible proxy -- it fans out to whatever
-# providers you've configured and falls back when one runs out of free quota
+# local 9router proxy, falls back when a provider runs out of quota
 MODEL = "ag/gemini-3.7-flash-medium"
 provider = OpenAIProvider(
     base_url="http://localhost:20128/v1",

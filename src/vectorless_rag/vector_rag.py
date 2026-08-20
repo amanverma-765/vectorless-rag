@@ -8,9 +8,7 @@ from pydantic_ai.providers.openai import OpenAIProvider
 
 from vectorless_rag.loader import load_pdf
 
-# Embeddings setup
-# ponytail: Gemini speaks OpenAI, so the same provider class works. 3072 dims --
-# delete chroma_db/ and re-ingest if you ever switch models again.
+# 3072 dims, delete chroma_db/ and re-ingest if this changes
 MODEL = "gemini-embedding-001"
 provider = OpenAIProvider(
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
@@ -19,28 +17,20 @@ provider = OpenAIProvider(
 embedding_model = OpenAIEmbeddingModel(
     MODEL,
     provider=provider,
-    # ponytail: openai-sdk defaults encoding_format=base64; ask for floats
+    # sdk defaults to base64
     settings=EmbeddingSettings(extra_body={"encoding_format": "float"}),
 )
 embedder = Embedder(embedding_model)
 
-# Chroma setup
 client = chromadb.PersistentClient(path="./chroma_db")
-collection = client.get_or_create_collection(
-    name="documents"
-)
+collection = client.get_or_create_collection(name="documents")
 
 
-def create_chunks(
-        pages: list,
-        size: int = 1000,
-        overlap: int = 250
-) -> list[dict]:
-    # Without this the chunk loop never advances and spins forever
+def create_chunks(pages: list, size: int = 1000, overlap: int = 250) -> list[dict]:
     if overlap >= size:
         raise ValueError(f"overlap ({overlap}) must be less than size ({size})")
 
-    # Combine text while keeping track of which page each character belongs to
+    # track which slice of doc came from which page
     doc = ""
     page_ranges = []
 
@@ -66,18 +56,14 @@ def create_chunks(
         end = min(start + size, len(doc))
         chunked_text = doc[start:end].strip()
 
-        # Find all pages touched by this chunk
-        chunk_pages = [
-            page_info["page"]
-            for page_info in page_ranges
-            if page_info["start"] < end and page_info["end"] > start
-        ]
+        # ranges tile the doc, always one match
+        page = next(
+            r["page"] for r in page_ranges if r["start"] <= start < r["end"]
+        )
 
         chunks.append({
             "chunk_id": chunk_id,
-            # page_ranges tile the doc, so a chunk always touches one
-            "page": chunk_pages[0],
-            "pages": chunk_pages,
+            "page": page,
             "text": chunked_text,
         })
 
@@ -94,8 +80,7 @@ def create_chunks(
 async def create_embeddings(chunks: list[dict], batch: int = 100):
     texts = [chunk["text"] for chunk in chunks]
 
-    # ponytail: pydantic-ai sends the whole list in one request, so batch here
-    # or a large PDF blows the request limit. Sequential; parallelise if slow.
+    # pydantic-ai sends the whole list in one request, too big for a long pdf
     embeddings = []
     for start in range(0, len(texts), batch):
         result = await embedder.embed_documents(texts[start:start + batch])
@@ -111,8 +96,7 @@ async def create_embeddings(chunks: list[dict], batch: int = 100):
 
 
 def store_embeddings(chunks: list[dict], doc_id: str) -> None:
-    # Clear the doc first: add() silently drops duplicate ids, and upsert()
-    # would leave stale chunks behind when re-chunking yields fewer of them
+    # add() ignores dupe ids, upsert() leaves stale chunks behind. wipe first.
     collection.delete(where={"doc": doc_id})
 
     collection.add(
@@ -130,14 +114,13 @@ def store_embeddings(chunks: list[dict], doc_id: str) -> None:
         ],
         metadatas=[
             {
-                "doc": doc_id,  # what the delete above matches on
-                "chunk_id": chunk["chunk_id"],
+                "doc": doc_id,  # what delete() matches on
                 "page": chunk["page"],
-                "pages": ",".join(map(str, chunk["pages"])),
             }
             for chunk in chunks
         ],
     )
+
 
 async def ingest(pdf_path: str) -> None:
     print("Loading PDF...")
@@ -152,25 +135,25 @@ async def ingest(pdf_path: str) -> None:
     chunks = await create_embeddings(chunks)
 
     print("Storing in Chroma...")
-    # ponytail: stem collides for same-named PDFs in different dirs; hash the
-    # full path if that ever happens
+    # same-named pdfs in different dirs collide
     store_embeddings(chunks, Path(pdf_path).stem)
 
     print("Done!")
+
 
 async def retrieve(question: str, k: int = 5) -> list[dict]:
     """Search the indexed document for passages relevant to a question.
 
     Args:
-        question: What to search for. Rephrase the user's question if it helps.
+        question: What to search for. Reword it if the first search misses.
         k: How many passages to return.
     """
     print("Retrieving vector for: ", question)
-    # ponytail: embed_query, not embed_documents -- nemotron-embed is asymmetric
+    # embed_query, not embed_documents. gemini uses different task types.
     [vec] = await embedder.embed_query([question])
     res = collection.query(query_embeddings=[vec], n_results=k)
 
-    # Chroma nests one list per query; we only ever send one
+    # chroma nests one list per query
     return [
         {"text": text, "page": metadata["page"], "distance": distance}
         for text, metadata, distance in zip(

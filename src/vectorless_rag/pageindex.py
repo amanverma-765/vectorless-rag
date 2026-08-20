@@ -17,7 +17,6 @@ summarizer = Agent(
         "Write only the summary."
     )
 )
-# ponytail: list[int] rather than prose, so there is nothing to parse
 selector = Agent(
     model,
     output_type=list[int],
@@ -31,23 +30,20 @@ selector = Agent(
 
 async def ingest(pdf_path: str) -> None:
     print("Ingesting PDF...")
-    # Blank pages can't answer anything, and summarising them wastes a call
+    # blank pages waste a call
     pages = [(n, t) for n, t in load_pdf(pdf_path) if t.strip()]
 
     print(f"Summarizing {len(pages)} pages...")
-    # ponytail: one call per page, all at once. Fine up to a few hundred pages;
-    # add a semaphore if a big document starts tripping the provider's RPM.
+    # one call per page, all at once. add a semaphore if rpm becomes an issue
     runs = await asyncio.gather(*(summarizer.run(text) for _, text in pages))
 
-    # Page text is stored alongside the summary so retrieve never reopens the PDF
+    # keep the text here so retrieve doesn't reopen the pdf
     index = [
         {"page": n, "summary": r.output, "text": t}
         for (n, t), r in zip(pages, runs)
     ]
 
     INDEX_DIR.mkdir(exist_ok=True)
-    # ponytail: stem collides for same-named PDFs in different dirs; hash the
-    # full path if that ever happens
     path = INDEX_DIR / f"{Path(pdf_path).stem}.json"
     path.write_text(json.dumps(index, indent=2))
 
@@ -55,7 +51,7 @@ async def ingest(pdf_path: str) -> None:
 
 
 def load_index() -> dict[int, dict]:
-    """Every indexed page, keyed by page number, across all ingested PDFs."""
+    """Every indexed page across all ingested PDFs, keyed by page number"""
     files = sorted(INDEX_DIR.glob("*.json"))
     if not files:
         raise FileNotFoundError(f"no page index in {INDEX_DIR}/ -- ingest a PDF first")
@@ -71,7 +67,7 @@ async def retrieve(question: str, k: int = 5) -> list[dict]:
     """Search the indexed document for passages relevant to a question.
 
     Args:
-        question: What to search for. Rephrase the user's question if it helps.
+        question: What to search for. Reword it if the first search misses.
         k: How many passages to return.
     """
     print("Retrieving page index for: ", question)
@@ -85,8 +81,7 @@ async def retrieve(question: str, k: int = 5) -> list[dict]:
         f"{summaries}\n\nQuestion: {question}\nPick at most {k} pages."
     )
 
-    # The model can name a page that isn't in the index; drop those rather than
-    # hand the caller a KeyError
+    # model can name a page that isn't there
     return [
         {"text": index[n]["text"], "page": n}
         for n in picked.output[:k]
