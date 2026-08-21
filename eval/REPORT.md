@@ -11,6 +11,7 @@ arms answered the same 18 questions through the same agent
 uv run python eval/run_eval.py               # vector arm
 uv run python eval/run_eval.py --pageindex   # pageindex arm
 uv run python eval/run_eval.py --report      # this comparison
+uv run python eval/generate_charts.py        # generate matplotlib benchmark charts
 ```
 
 ## TL;DR
@@ -49,6 +50,10 @@ gold pages by hand. The categories target known failure modes of each arm:
   refusal. These are read by hand, not auto-scored.
 
 ## Headline numbers
+
+![Retrieval Trade-Off Benchmarks](../docs/assets/retrieval_tradeoffs.png)
+
+*Interactive charts and metric distributions available in [`benchmark_analysis.ipynb`](benchmark_analysis.ipynb).*
 
 | metric | vector_rag | pageindex |
 | --- | --- | --- |
@@ -108,6 +113,8 @@ while the selector returns only the pages it believes in (usually 1-3
 pages). The agent sees less noise from pageindex, so it cites less noise.
 
 ## Case studies
+
+![Query Failure Analysis](../docs/assets/query_failures.png)
 
 ### Q14, the one clean win
 

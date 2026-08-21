@@ -30,7 +30,10 @@ obvious.
 18 hand-written questions against a real 16-page document, gold pages
 labelled by hand, run through both arms end to end (retrieval, answer,
 citations). Full write-up, per-question breakdown, and reproduction
-command: [`eval/REPORT.md`](eval/REPORT.md).
+command: [`eval/REPORT.md`](eval/REPORT.md). For the interactive analysis
+and failure breakdown, see the [Jupyter Benchmark Notebook](eval/benchmark_analysis.ipynb).
+
+![Retrieval Trade-Off Benchmarks](docs/assets/retrieval_tradeoffs.png)
 
 | metric | `vector_rag` | `pageindex` |
 | --- | --- | --- |
