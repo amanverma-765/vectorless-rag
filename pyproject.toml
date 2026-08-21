@@ -10,8 +10,20 @@ dependencies = [
 ]
 
 
+[dependency-groups]
+dev = ["ruff>=0.14", "pre-commit>=4"]
+
 [project.scripts]
 vectorless = "vectorless_rag.main:main"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# load_dotenv() must run before project imports (modules read env at import time)
+"src/vectorless_rag/main.py" = ["E402"]
+# plus E501: question corpus strings and fixed-width report rows read worse wrapped
+"eval/run_eval.py" = ["E402", "E501"]
 
 [build-system]
 requires = ["hatchling"]

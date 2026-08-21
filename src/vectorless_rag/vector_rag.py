@@ -43,11 +43,13 @@ def create_chunks(pages: list, size: int = 1000, overlap: int = 250) -> list[dic
         doc += text + " "
         end = len(doc)
 
-        page_ranges.append({
-            "page": page_number,
-            "start": start,
-            "end": end,
-        })
+        page_ranges.append(
+            {
+                "page": page_number,
+                "start": start,
+                "end": end,
+            }
+        )
 
     chunks = []
 
@@ -59,15 +61,15 @@ def create_chunks(pages: list, size: int = 1000, overlap: int = 250) -> list[dic
         chunked_text = doc[start:end].strip()
 
         # ranges tile the doc, always one match
-        page = next(
-            r["page"] for r in page_ranges if r["start"] <= start < r["end"]
-        )
+        page = next(r["page"] for r in page_ranges if r["start"] <= start < r["end"])
 
-        chunks.append({
-            "chunk_id": chunk_id,
-            "page": page,
-            "text": chunked_text,
-        })
+        chunks.append(
+            {
+                "chunk_id": chunk_id,
+                "page": page,
+                "text": chunked_text,
+            }
+        )
 
         chunk_id += 1
 
@@ -85,7 +87,7 @@ async def create_embeddings(chunks: list[dict], batch: int = 100):
     # pydantic-ai sends the whole list in one request, too big for a long pdf
     embeddings = []
     for start in range(0, len(texts), batch):
-        result = await embedder.embed_documents(texts[start:start + batch])
+        result = await embedder.embed_documents(texts[start : start + batch])
         embeddings.extend(result.embeddings)
 
     return [
@@ -93,7 +95,7 @@ async def create_embeddings(chunks: list[dict], batch: int = 100):
             **chunk,
             "embedding": embedding,
         }
-        for chunk, embedding in zip(chunks, embeddings)
+        for chunk, embedding in zip(chunks, embeddings, strict=True)
     ]
 
 
@@ -102,18 +104,9 @@ def store_embeddings(chunks: list[dict], doc_id: str) -> None:
     collection.delete(where={"doc": doc_id})
 
     collection.add(
-        ids=[
-            f"{doc_id}-{chunk['chunk_id']}"
-            for chunk in chunks
-        ],
-        documents=[
-            chunk["text"]
-            for chunk in chunks
-        ],
-        embeddings=[
-            chunk["embedding"]
-            for chunk in chunks
-        ],
+        ids=[f"{doc_id}-{chunk['chunk_id']}" for chunk in chunks],
+        documents=[chunk["text"] for chunk in chunks],
+        embeddings=[chunk["embedding"] for chunk in chunks],
         metadatas=[
             {
                 "doc": doc_id,  # what delete() matches on
@@ -173,5 +166,6 @@ async def retrieve(question: str, k: int = 5) -> list[dict]:
             res["documents"][0],
             res["metadatas"][0],
             res["distances"][0],
+            strict=True,
         )
     ]

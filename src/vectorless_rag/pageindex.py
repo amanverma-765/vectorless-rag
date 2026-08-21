@@ -19,7 +19,7 @@ summarizer = Agent(
         "One sentence: what would a reader find on this page? "
         "Name the specific topics, terms and examples covered. "
         "Write only the summary."
-    )
+    ),
 )
 selector = Agent(
     model,
@@ -28,7 +28,7 @@ selector = Agent(
         "You are given a page index: one summary per page of a document. "
         "Return the page numbers that answer the question, fewest first. "
         "Return an empty list if none of them fit."
-    )
+    ),
 )
 
 
@@ -52,7 +52,7 @@ async def ingest(pdf_path: str) -> None:
     # keep the text here so retrieve doesn't reopen the pdf
     index = [
         {"page": n, "summary": r.output, "text": t}
-        for (n, t), r in zip(pages, runs)
+        for (n, t), r in zip(pages, runs, strict=True)
     ]
 
     INDEX_DIR.mkdir(exist_ok=True)
@@ -72,9 +72,7 @@ def load_index() -> dict[int, dict]:
         raise FileNotFoundError(f"no page index in {INDEX_DIR}/ -- ingest a PDF first")
 
     return {
-        page["page"]: page
-        for file in files
-        for page in json.loads(file.read_text())
+        page["page"]: page for file in files for page in json.loads(file.read_text())
     }
 
 
@@ -89,8 +87,7 @@ async def retrieve(question: str, k: int = 5) -> list[dict]:
     index = load_index()
 
     summaries = "\n".join(
-        f"page {n}: {page['summary']}"
-        for n, page in sorted(index.items())
+        f"page {n}: {page['summary']}" for n, page in sorted(index.items())
     )
     picked = await selector.run(
         f"{summaries}\n\nQuestion: {question}\nPick at most {k} pages."
@@ -100,9 +97,7 @@ async def retrieve(question: str, k: int = 5) -> list[dict]:
 
     # model can name a page that isn't there
     pages = [
-        {"text": index[n]["text"], "page": n}
-        for n in picked.output[:k]
-        if n in index
+        {"text": index[n]["text"], "page": n} for n in picked.output[:k] if n in index
     ]
     # an empty tool result makes the gemini backend reject the next request
     if not pages:

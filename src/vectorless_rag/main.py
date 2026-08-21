@@ -2,6 +2,7 @@ import asyncio
 import sys
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from vectorless_rag import pageindex, vector_rag
@@ -22,7 +23,7 @@ def main() -> None:
         quest = input("user > ")
         if quest == "exit":
             break
-        print(f'bot >  {asyncio.run(answer(quest))}')
+        print(f"bot >  {asyncio.run(answer(quest))}")
 
 
 if __name__ == "__main__":
