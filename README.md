@@ -75,6 +75,7 @@ Python 3.14+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync
+uv run pre-commit install   # ruff lint + format on every commit
 cp .env.example .env   # fill in the two keys
 ```
 
@@ -290,8 +291,12 @@ reopen the PDF. Summaries are for *finding*; text is what gets returned.
 ### Retrieval is a prompt, not a search
 
 ```python
-summaries = "\n".join(f"page {n}: {page['summary']}" for n, page in sorted(index.items()))
-picked = await selector.run(f"{summaries}\n\nQuestion: {question}\nPick at most {k} pages.")
+summaries = "\n".join(
+    f"page {n}: {page['summary']}" for n, page in sorted(index.items())
+)
+picked = await selector.run(
+    f"{summaries}\n\nQuestion: {question}\nPick at most {k} pages."
+)
 ```
 
 The selector agent is declared with `output_type=list[int]`, so pydantic-ai
